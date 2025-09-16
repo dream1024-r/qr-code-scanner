@@ -8,7 +8,7 @@ st.title("📷 QR Code 掃描器 - OpenCV 版")
 uploaded_file = st.file_uploader("請上傳 QR Code 圖片", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
-    # 讀取圖片，統一轉成 RGB 三通道（避免灰階或透明背景報錯）
+    # 讀取圖片，統一轉成 RGB 三通道
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="上傳的圖片", use_container_width=True)
 
@@ -20,16 +20,23 @@ if uploaded_file is not None:
 
     # 嘗試偵測多個 QR Code
     try:
-        data_list, bbox_list, _ = detector.detectAndDecodeMulti(img)
+        result = detector.detectAndDecodeMulti(img)
+        if result is not None and len(result) == 3:
+            data_list, bbox_list, _ = result
+        else:
+            data_list, bbox_list = [], None
     except:
         data_list, bbox_list = [], None
 
     # 如果 detectAndDecodeMulti 沒找到，改用 detectAndDecode
     if not data_list or (isinstance(data_list, list) and all(d == "" for d in data_list)):
-        single_data, bbox = detector.detectAndDecode(img)
-        if single_data:
-            data_list = [single_data]
-            bbox_list = [bbox]
+        try:
+            single_data, bbox, _ = detector.detectAndDecode(img)  # 支援新版本
+            if single_data:
+                data_list = [single_data]
+                bbox_list = [bbox]
+        except:
+            data_list, bbox_list = [], None
 
     # 顯示結果 + 畫框框
     if data_list and any(d for d in data_list):
@@ -38,11 +45,9 @@ if uploaded_file is not None:
             if data:
                 st.success(f"🔍 偵測到 QR Code {i+1}：{data}")
                 if bbox_list is not None:
-                    if isinstance(bbox_list, list):  # 單一 QR Code
-                        points = np.int32(bbox_list[0]).reshape(-1, 2)
-                    else:  # 多個 QR Code
+                    if isinstance(bbox_list, list) and bbox_list[0] is not None:
                         points = np.int32(bbox_list[i]).reshape(-1, 2)
-                    cv2.polylines(output_img, [points], True, (0, 255, 0), 3)
+                        cv2.polylines(output_img, [points], True, (0, 255, 0), 3)
 
         # 顯示標記後的圖片
         st.image(cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB), caption="📍 偵測結果", use_container_width=True)
