@@ -8,11 +8,11 @@ st.title("📷 QR Code 掃描器 - OpenCV 版")
 uploaded_file = st.file_uploader("請上傳 QR Code 圖片", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
-    # 讀取圖片
-    image = Image.open(uploaded_file)
+    # 讀取圖片，統一轉成 RGB 三通道（避免灰階或透明背景報錯）
+    image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="上傳的圖片", use_container_width=True)
 
-    # 轉換為 OpenCV 格式
+    # 轉換為 OpenCV 格式 (BGR)
     img = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
     # 建立 QR Code 偵測器
